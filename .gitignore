@@ -1,3 +1,5 @@
 configs/*
 .env
 __pycache__
+jsonoutput/*
+output/*
