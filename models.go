@@ -7,7 +7,12 @@ type SubjectConfig struct {
 	} `json:"config"`
 }
 
-type QuestionBank struct {
-	Subject   string         `json:"subject"`
-	Questions map[int]string `json:"questions"`
+type SubjectQuestionBank struct {
+	Subject string           `json:"subject"`
+	Topics  []TopicQuestions `json:"topics"`
+}
+
+type TopicQuestions struct {
+	Topic     string `json:"topic"`
+	Questions string `json:"questions"`
 }

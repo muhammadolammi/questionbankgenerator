@@ -12,33 +12,39 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-func generateQuestionBank(subjectConfig SubjectConfig, ctx context.Context, model *genai.GenerativeModel) QuestionBank {
-	questions := make(map[int]string)
-	timespent := time.Now()
+func generateQuestionBank(subjectConfig SubjectConfig, ctx context.Context, model *genai.GenerativeModel) {
+	startTime := time.Now()
+	var topics []TopicQuestions
 
-	for i := 0; i < 10000; i++ {
-		topic := subjectConfig.Config.Topics[i%len(subjectConfig.Config.Topics)]
+	for _, topic := range subjectConfig.Config.Topics {
+		log.Printf("Generating questions for subject %v, topic %v", subjectConfig.Config.Subject, topic)
 
-		log.Printf("generating.... for subject %v, for topic %v", subjectConfig.Config.Subject, topic)
-		question := generateQuestionOnTopic(model, topic, ctx)
-		appendToQuestion(questions, question)
+		topicQuestions := generateQuestionOnTopic(model, subjectConfig.Config.Subject, topic, ctx)
+		time.Sleep(time.Second * 10) // Consider adding a constant or a parameter for this delay
 
-		// time.Sleep(time.Second * 10)
-		log.Printf("done generating.... for subject %v, for topic %v", subjectConfig.Config.Subject, topic)
-		log.Printf("%v questions generated", i+1)
+		log.Printf("Done generating questions for subject %v, topic %v", subjectConfig.Config.Subject, topic)
 
+		topicQuestionsData := TopicQuestions{
+			Topic:     topic,
+			Questions: topicQuestions,
+		}
+		topics = append(topics, topicQuestionsData)
+
+		currentQuestionBank := SubjectQuestionBank{
+			Subject: subjectConfig.Config.Subject,
+			Topics:  topics,
+		}
+
+		// Save the current question bank to memory
+		mutex.Lock()
+		generatedQuestionBanks[subjectConfig.Config.Subject] = currentQuestionBank
+		mutex.Unlock()
 	}
-	log.Println("generated in", time.Since(timespent))
 
-	questionBank := QuestionBank{
-		Subject:   subjectConfig.Config.Subject,
-		Questions: questions,
-	}
-
-	return questionBank
-
+	log.Println("Total time spent:", time.Since(startTime))
 }
-func (config *Config) saveQuestionBank(subjectConfig SubjectConfig, questionBank QuestionBank) {
+
+func (config *Config) saveQuestionBanks() {
 	savedir := fmt.Sprintf("%s/jsonoutput", config.WD)
 	if _, err := os.Stat(savedir); os.IsNotExist(err) {
 		if err := os.MkdirAll(savedir, 0755); err != nil {
@@ -52,30 +58,23 @@ func (config *Config) saveQuestionBank(subjectConfig SubjectConfig, questionBank
 			log.Fatalf("Error creating save directory: %s", err)
 		}
 	}
-	filePath := fmt.Sprintf("%s/%s.json", savedir, subjectConfig.Config.Subject)
-	filedata, err := json.Marshal(questionBank)
-	if err != nil {
-		log.Println("Error marshalling file data:", err)
-		return
-	}
-	log.Printf("saving.... for subject %v", subjectConfig.Config.Subject)
 
-	if err := os.WriteFile(filePath, filedata, 0644); err != nil {
-		log.Println("Error saving chat:", err)
-		return
-	}
-	log.Printf("done saving.... for subject %v", subjectConfig.Config.Subject)
-}
-
-func appendToQuestion(m map[int]string, value string) {
-	maxKey := -1
-	for k := range m {
-		if k > maxKey {
-			maxKey = k
+	for _, questionBank := range generatedQuestionBanks {
+		filePath := fmt.Sprintf("%s/%s.json", savedir, questionBank.Subject)
+		filedata, err := json.MarshalIndent(questionBank, "", "   ")
+		if err != nil {
+			log.Println("Error marshalling file data:", err)
+			return
 		}
+		log.Printf("saving.... for subject %v", questionBank.Subject)
+
+		if err := os.WriteFile(filePath, filedata, 0644); err != nil {
+			log.Println("Error saving chat:", err)
+			return
+		}
+		log.Printf("done saving.... for subject %v", questionBank.Subject)
 	}
-	nextKey := maxKey + 1
-	m[nextKey] = value
+
 }
 
 func formatResponse(resp *genai.GenerateContentResponse) string {
@@ -93,15 +92,42 @@ func formatResponse(resp *genai.GenerateContentResponse) string {
 	return formattedContent.String()
 }
 
-func generateQuestionOnTopic(model *genai.GenerativeModel, topic string, ctx context.Context) string {
+func generateQuestionOnTopic(model *genai.GenerativeModel, subject, topic string, ctx context.Context) string {
 
-	prompt := fmt.Sprintf("Generate a multiple choice question on %s. The question should have four options (a, b, c, d), specify the correct answer, and provide a brief explanation for the correct answer.", topic)
-
+	prompt := fmt.Sprintf(`Following the JAMB %v syllabus Generate a 200  multiple choice question bank on topic %s. Each question should have four options (a, b, c, d), specify the correct answer, and provide a brief explanation for the correct answer. it must be a 200 question bank `, subject, topic)
+	log.Println(prompt)
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		log.Println(err)
 	}
 	formattedResponse := formatResponse(resp)
+	log.Println(formattedResponse)
 	return (formattedResponse)
 
 }
+
+// func (config *Config) saveGeneratedData() {
+// 	savedir := fmt.Sprintf("%s/jsonoutput", config.WD)
+// 	if _, err := os.Stat(savedir); os.IsNotExist(err) {
+// 		if err := os.MkdirAll(savedir, 0755); err != nil {
+// 			log.Fatalf("Error creating save directory: %s", err)
+// 		}
+// 	}
+
+// 	log.Println(generatedQuestionBanks)
+// 	for subject, questionBank := range generatedQuestionBanks {
+// 		filePath := fmt.Sprintf("%s/%s.json", savedir, subject)
+// 		filedata, err := json.Marshal(questionBank)
+// 		if err != nil {
+// 			log.Println("Error marshalling file data:", err)
+// 			continue
+// 		}
+// 		log.Printf("saving.... for subject %v", subject)
+
+// 		if err := os.WriteFile(filePath, filedata, 0644); err != nil {
+// 			log.Println("Error saving chat:", err)
+// 			continue
+// 		}
+// 		log.Printf("done saving.... for subject %v", subject)
+// 	}
+// }

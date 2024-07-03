@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 )
 
@@ -21,7 +22,7 @@ func getSubjectConfigsFile() ([]fs.DirEntry, error) {
 
 	files, err := os.ReadDir(configPath)
 	if err != nil {
-		fmt.Println("Error reading directory:", err)
+		log.Println("Error reading directory:", err)
 		return []fs.DirEntry{}, err
 	}
 

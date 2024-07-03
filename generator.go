@@ -37,8 +37,9 @@ func (config *Config) generate(subjectConfigs []SubjectConfig) {
 		wg.Add(1)
 		go func(subjectConfig SubjectConfig) {
 			defer wg.Done()
-			subjectQuestionBank := generateQuestionBank(subjectConfig, ctx, model)
-			config.saveQuestionBank(subjectConfig, subjectQuestionBank)
+			generateQuestionBank(subjectConfig, ctx, model)
+			config.saveQuestionBanks()
+
 		}(subjectConfig)
 	}
 
