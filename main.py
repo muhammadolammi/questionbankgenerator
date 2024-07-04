@@ -54,16 +54,19 @@ def getJsondatafromfile(filepath):
 def migrateJsonToDocx(migrationFile):
     data = getJsondatafromfile(migrationFile)
     subject = data["subject"]
+    examType= data["exam_type"]
     
     doc = docx.Document()
-    doc.add_heading('Multiple Choice Questions', 0)
-    for number ,question in data["questions"].items():
-      para = f'{number} {question}'
-      doc.add_paragraph(para)
+    doc.add_heading(f'{subject} {examType} Multiple Choice Questions', 0)
+    for topic in data["topics"]:
+      para1 = f'{topic["topic"]}'
+      para2 = f'{topic["questions"]}'
+      doc.add_paragraph(para1)
+      doc.add_paragraph(para2)
       
       
 
-    doc.save(f'output/{subject}.docx')
+    doc.save(f'output/{subject.lower()}.docx')
 
 
 def main():

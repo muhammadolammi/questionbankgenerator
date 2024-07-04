@@ -3,3 +3,6 @@ configs/*
 __pycache__
 jsonoutput/*
 output/*
+!output/biology.docx
+!jsonoutput/biology.json
+!configs/biology.json

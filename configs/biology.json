@@ -1,0 +1,13 @@
+{
+    "config":{
+        "exam_type": "Jamb",
+        "subject":"Biology",
+        "topics":[
+            "Human respiratory system",
+            "Cell",
+            "Human reproduction",
+            "Human Growth"
+
+        ]
+    }
+}

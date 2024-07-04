@@ -19,7 +19,7 @@ func generateQuestionBank(subjectConfig SubjectConfig, ctx context.Context, mode
 	for _, topic := range subjectConfig.Config.Topics {
 		log.Printf("Generating questions for subject %v, topic %v", subjectConfig.Config.Subject, topic)
 
-		topicQuestions := generateQuestionOnTopic(model, subjectConfig.Config.Subject, topic, ctx)
+		topicQuestions := generateQuestionOnTopic(model, subjectConfig.Config.ExamType, subjectConfig.Config.Subject, topic, ctx)
 		time.Sleep(time.Second * 10) // Consider adding a constant or a parameter for this delay
 
 		log.Printf("Done generating questions for subject %v, topic %v", subjectConfig.Config.Subject, topic)
@@ -31,8 +31,9 @@ func generateQuestionBank(subjectConfig SubjectConfig, ctx context.Context, mode
 		topics = append(topics, topicQuestionsData)
 
 		currentQuestionBank := SubjectQuestionBank{
-			Subject: subjectConfig.Config.Subject,
-			Topics:  topics,
+			ExamType: subjectConfig.Config.ExamType,
+			Subject:  subjectConfig.Config.Subject,
+			Topics:   topics,
 		}
 
 		// Save the current question bank to memory
@@ -60,7 +61,7 @@ func (config *Config) saveQuestionBanks() {
 	}
 
 	for _, questionBank := range generatedQuestionBanks {
-		filePath := fmt.Sprintf("%s/%s.json", savedir, questionBank.Subject)
+		filePath := fmt.Sprintf("%s/%s.json", savedir, strings.ToLower(questionBank.Subject))
 		filedata, err := json.MarshalIndent(questionBank, "", "   ")
 		if err != nil {
 			log.Println("Error marshalling file data:", err)
@@ -92,10 +93,10 @@ func formatResponse(resp *genai.GenerateContentResponse) string {
 	return formattedContent.String()
 }
 
-func generateQuestionOnTopic(model *genai.GenerativeModel, subject, topic string, ctx context.Context) string {
+func generateQuestionOnTopic(model *genai.GenerativeModel, examType, subject, topic string, ctx context.Context) string {
 
-	prompt := fmt.Sprintf(`Following the JAMB %v syllabus Generate a 200  multiple choice question bank on topic %s. Each question should have four options (a, b, c, d), specify the correct answer, and provide a brief explanation for the correct answer. it must be a 200 question bank `, subject, topic)
-	log.Println(prompt)
+	prompt := fmt.Sprintf(`Generate a 50  multiple choice question bank on subject %s, focusing on topic %s , following the %s sylabbus. Each question should have four options (a, b, c, d), specify the correct answer, and provide a brief explanation for the correct answer. Do not worry i trust your questions, so all 50 must be generated. Do not response with anything other than the questions generated`, subject, topic, examType)
+
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		log.Println(err)
